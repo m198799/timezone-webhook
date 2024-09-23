@@ -1,0 +1,27 @@
+apiVersion: skaffold/v4beta4
+kind: Config
+build:
+  artifacts:
+    - image: registry.jugglechat.cn/timezone-webhook-debug
+      docker:
+        dockerfile: build/package/Debug.Dockerfile
+#        cacheFrom:
+#          - registry.jugglechat.cn/ms-docker/timezone-webhook
+  tagPolicy:
+    sha256: {}
+  platforms: ["linux/amd64"]
+manifests:
+  helm:
+    releases:
+      - name: timezone-webhook
+        chartPath: charts/timezone-webhook
+        valuesFiles:
+          - charts/values.yaml
+        namespace: qt-system
+#        setValueTemplates:
+#          image.repository: '{{.IMAGE_REPO_registry_jugglechat_cn_service_webhook_debug}}'
+#          image.tag: '{{.IMAGE_TAG_registry_jugglechat_cn_service_webhook_debug}}@{{.IMAGE_DIGEST_registry_jugglechat_cn_service_webhook_debug}}'
+        wait: true
+deploy:
+  helm: {}
+  statusCheckDeadlineSeconds: 30

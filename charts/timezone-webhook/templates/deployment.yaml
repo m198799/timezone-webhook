@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "service-webhook.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "service-webhook.labels" . | nindent 4 }}
+spec:
+  {{- if (gt (int .Values.replicaCount) 1) }} 
+  replicas: {{ .Values.replicaCount | int }}
+  {{- else }}
+  replicas: {{ include "service-webhook.replicas" . | int }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "service-webhook.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/admission-webhook.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        # preventing deadlock
+        timezone.qingteng.io/inject: "false"
+        {{- include "service-webhook.selectorLabels" . | nindent 8 }}
+    spec:
+      volumes:
+      - name: tls
+        secret:
+          secretName: {{ include "service-webhook.fullname" . }}-tls
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      - name: {{ .Values.imagePullSecrets }}
+      {{- end }}
+      serviceAccountName: {{ include "service-webhook.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          args:
+          - "./webhook"
+          - "webhook"
+          - "--timezone"
+          - {{ .Values.timezone | quote }}
+          - "--injection-strategy"
+          - {{ .Values.injectionStrategy | quote }}
+          - "--inject={{ .Values.injectAll }}"
+          - "--kube-config={{ .Values.kubeConfig }}"
+          - "--namespaces={{ .Release.Namespace }}"
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          volumeMounts:
+            - name: tls
+              mountPath: /run/secrets/tls
+              readOnly: true
+          ports:
+            - name: https
+              containerPort: 8443
+              protocol: TCP
+          startupProbe:
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+            successThreshold: 1
+            httpGet:
+              path: /health
+              port: https
+              scheme: HTTPS
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: https
+              scheme: HTTPS
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: https
+              scheme: HTTPS
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,47 @@
+{{- $ca := include "service-webhook.ca" . | fromYaml }}
+apiVersion: v1
+data:
+  tls.crt: {{ $ca.Cert | b64enc }}
+  tls.key: {{ $ca.Key | b64enc }}
+kind: Secret
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ include "service-webhook.fullname" . }}-tls
+  labels:
+    {{- include "service-webhook.labels" . | nindent 4 }}
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: {{ include "service-webhook.fullname" . }}
+  labels:
+    {{- include "service-webhook.labels" . | nindent 4 }}
+webhooks:
+  - name: admission-controller.webhook.io
+    namespaceSelector:
+      matchExpressions:
+      - key: "kubernetes.io/metadata.name"
+        operator: In
+        values:
+        - {{ .Release.Namespace }}
+    objectSelector:
+      matchExpressions:
+      - key: "timezone.qingteng.io/inject"
+        operator: NotIn
+        values:
+        - "false"
+    sideEffects: None
+    failurePolicy: {{ .Values.webhook.failurePolicy }}
+    admissionReviewVersions: ["v1", "v1beta1"]
+    clientConfig:
+      service:
+        name: {{ include "service-webhook.serviceName" . }}
+        namespace: {{ .Release.Namespace }}
+        path: "/"
+        port: {{ .Values.service.port }}
+      caBundle: {{ $ca.Cert | b64enc }}
+    rules:
+      - operations: [ "CREATE" ]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]

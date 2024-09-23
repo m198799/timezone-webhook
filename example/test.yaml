@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    timezone.jugglechat.io/inject: "false"
+  labels:
+    kubernetes.io/metadata.name: test
+  name: test
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-test
+  namespace: test
+  labels:
+    name: nginx
+  annotations:
+    timezone.jugglechat.io/inject: "false"
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      resources:
+        limits:
+          memory: "128Mi"
+          cpu: "500m"
+      ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-test-2
+  namespace: test
+  labels:
+    name: nginx
+  annotations:
+    timezone.jugglechat.io/inject: "true"
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      resources:
+        limits:
+          memory: "128Mi"
+          cpu: "500m"
+      ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-test
+  labels:
+    name: nginx
+  annotations:
+    timezone.jugglechat.io/inject: "false"
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      resources:
+        limits:
+          memory: "128Mi"
+          cpu: "500m"
+      ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-test-2
+  labels:
+    name: nginx
+  annotations:
+    timezone.jugglechat.io/inject: "true"
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      resources:
+        limits:
+          memory: "128Mi"
+          cpu: "500m"
+      ports:
+        - containerPort: 80

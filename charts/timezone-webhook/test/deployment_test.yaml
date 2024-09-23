@@ -1,0 +1,49 @@
+suite: test deployment
+templates:
+  - templates/deployment.yaml
+tests:
+  - it: deploy_mode eq performance
+    release:
+      name: webhook
+    set:
+      deploy_mode: performance
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 2
+
+  - it: deploy_mode ne performance
+    release:
+      name: webhook
+    set:
+      deploy_mode: minimall
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: replicaCount gt 1
+    release:
+      name: webhook
+    set:
+      replicaCount: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+
+  - it: has timezone.qingteng.io/inject label
+    release:
+      name: webhook
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels['timezone.qingteng.io/inject']
+          value: "false"
+
+  - it: should set correct namespace in --namespaces argument
+    release:
+      namespace: qt-system
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args[8]
+          value: "--namespaces=qt-system"

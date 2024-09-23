@@ -1,0 +1,12 @@
+# Default values for webhook.
+replicaCount: 1
+
+injectionStrategy: configmap
+timezone: UTC
+
+timezoneNamespaces:
+  - "default"
+image:
+  repository: docker.io/m198799/timezone-webhook-debug
+  pullPolicy: IfNotPresent
+  tag: latest
